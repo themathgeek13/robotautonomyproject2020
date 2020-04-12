@@ -64,16 +64,90 @@ class NoisyObjectPoseSensor:
 
         return obj_poses
 
+def move_to_location(task, obs, desired_pose, obj_pose_sensor, tolerance=0.5, isopen=1):
+	while True:
+		obj_poses = obj_pose_sensor.get_poses()
+		current_gripper_pose = obs.gripper_pose
+		delta = desired_pose - current_gripper_pose 	# this is the entire delta. First servo with XYZ.
+		delta[3:] = np.zeros(4)		# don't change the quaternion 
+		print(np.linalg.norm(delta))
+		if(np.linalg.norm(delta)<tolerance):
+			break
+		obs, reward, terminate = task.step((current_gripper_pose+delta/20).tolist()+[isopen])
+	return obs, reward, terminate
+
 
 if __name__ == "__main__":
-    action_mode = ActionMode(ArmActionMode.DELTA_EE_POSE) # See rlbench/action_modes.py for other action modes
-    env = Environment(action_mode, '', ObservationConfig(), False)
-    task = env.get_task(EmptyContainer) # available tasks: EmptyContainer, PlayJenga, PutGroceriesInCupboard, SetTheTable
-    agent = RandomAgent()
-    obj_pose_sensor = NoisyObjectPoseSensor(env)
-   
-    descriptions, obs = task.reset()
-    print(descriptions)
+	action_mode = ActionMode(ArmActionMode.ABS_EE_POSE_PLAN) # See rlbench/action_modes.py for other action modes
+	env = Environment(action_mode, '', ObservationConfig(), False)
+	task = env.get_task(EmptyContainer) # available tasks: EmptyContainer, PlayJenga, PutGroceriesInCupboard, SetTheTable
+	agent = RandomAgent()
+	obj_pose_sensor = NoisyObjectPoseSensor(env)
+
+	descriptions, obs = task.reset()
+	print(descriptions)
+
+	# Go to location above the center container (waypoint 2)
+	waypoint2 = obj_pose_sensor.get_poses()["waypoint2"]
+	task.step(waypoint2.tolist()+[1])
+
+	# Now go to shape 0
+	shape0 = obj_pose_sensor.get_poses()["Shape0"]
+	shape0[3:] = [1,0,0,0]
+	task.step(shape0.tolist()+[1])
+	# Now close the gripper to try picking it up (close gripper)
+	task.step((obs.gripper_pose).tolist()+[0])
+
+	# Now move to waypoint 2 once again (but keep the gripper closed)
+	task.step(waypoint2.tolist()+[0])
+
+	# Now move to the empty target container (waypoint 3) and then drop
+	waypoint3 = obj_pose_sensor.get_poses()["waypoint3"]
+	task.step(waypoint3.tolist()+[0])
+
+	# Now drop it.
+	task.step((obs.gripper_pose).tolist()+[1])
+	#######################################################################
+	# Now move back to waypoint2
+	task.step(waypoint2.tolist()+[1])
+
+	# Now pick up next shape
+	shape1 = obj_pose_sensor.get_poses()["Shape1"]
+	shape1[3:] = [1,0,0,0]
+	task.step(shape1.tolist()+[1])
+	# Now close the gripper to try picking it up (close gripper)
+	task.step((obs.gripper_pose).tolist()+[0])
+
+	# Now move to waypoint 2 once again (but keep the gripper closed)
+	task.step(waypoint2.tolist()+[0])
+
+	# Now move to the empty target container (waypoint 3) and then drop
+	waypoint3 = obj_pose_sensor.get_poses()["waypoint3"]
+	task.step(waypoint3.tolist()+[0])
+
+	# Now drop it.
+	task.step((obs.gripper_pose).tolist()+[1])
+	#######################################################################
+	# Now move back to waypoint2
+	task.step(waypoint2.tolist()+[1])
+
+	# Now pick up next shape
+	shape3 = obj_pose_sensor.get_poses()["Shape3"]
+	shape3[3:] = [1,0,0,0]
+	task.step(shape3.tolist()+[1])
+	# Now close the gripper to try picking it up (close gripper)
+	task.step((obs.gripper_pose).tolist()+[0])
+
+	# Now move to waypoint 2 once again (but keep the gripper closed)
+	task.step(waypoint2.tolist()+[0])
+
+	# Now move to the empty target container (waypoint 3) and then drop
+	waypoint3 = obj_pose_sensor.get_poses()["waypoint3"]
+	task.step(waypoint3.tolist()+[0])
+
+	# Now drop it.
+	task.step((obs.gripper_pose).tolist()+[1])
+	"""
     while True:
         # Getting noisy object poses
         obj_poses = obj_pose_sensor.get_poses()
@@ -94,5 +168,6 @@ if __name__ == "__main__":
         point_cloud = cam_intr.deproject(depth_image)
         # if terminate:
         #     break
+	"""
+	env.shutdown()
 
-    env.shutdown()
