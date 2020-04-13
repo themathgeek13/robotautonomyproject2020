@@ -93,64 +93,147 @@ if __name__ == "__main__":
 
 	# Go to location above the center container (waypoint 2)
 	waypoint2 = obj_pose_sensor.get_poses()["waypoint2"]
-	task.step(waypoint2.tolist()+[1])
+	obs, reward, terminate = task.step(waypoint2.tolist()+[1])
 
 	# Now go to shape 0
 	shape0 = obj_pose_sensor.get_poses()["Shape0"]
 	shape0[3:] = [1,0,0,0]
-	task.step(shape0.tolist()+[1])
+	obs, reward, terminate = task.step(shape0.tolist()+[1])
 	# Now close the gripper to try picking it up (close gripper)
-	task.step((obs.gripper_pose).tolist()+[0])
+	obs, reward, terminate = task.step((obs.gripper_pose).tolist()+[0])
 
 	# Now move to waypoint 2 once again (but keep the gripper closed)
-	task.step(waypoint2.tolist()+[0])
+	obs, reward, terminate = task.step(waypoint2.tolist()+[0])
 
 	# Now move to the empty target container (waypoint 3) and then drop
 	waypoint3 = obj_pose_sensor.get_poses()["waypoint3"]
-	task.step(waypoint3.tolist()+[0])
+	obs, reward, terminate = task.step(waypoint3.tolist()+[0])
 
 	# Now drop it.
-	task.step((obs.gripper_pose).tolist()+[1])
+	obs, reward, terminate = task.step((obs.gripper_pose).tolist()+[1])
 	#######################################################################
 	# Now move back to waypoint2
-	task.step(waypoint2.tolist()+[1])
+	obs, reward, terminate = task.step(waypoint2.tolist()+[1])
 
 	# Now pick up next shape
 	shape1 = obj_pose_sensor.get_poses()["Shape1"]
 	shape1[3:] = [1,0,0,0]
-	task.step(shape1.tolist()+[1])
+	obs, reward, terminate = task.step(shape1.tolist()+[1])
 	# Now close the gripper to try picking it up (close gripper)
-	task.step((obs.gripper_pose).tolist()+[0])
+	obs, reward, terminate = task.step((obs.gripper_pose).tolist()+[0])
 
 	# Now move to waypoint 2 once again (but keep the gripper closed)
-	task.step(waypoint2.tolist()+[0])
-
+	obs, reward, terminate = task.step(waypoint2.tolist()+[0])
+	
 	# Now move to the empty target container (waypoint 3) and then drop
 	waypoint3 = obj_pose_sensor.get_poses()["waypoint3"]
-	task.step(waypoint3.tolist()+[0])
+	obs, reward, terminate = task.step(waypoint3.tolist()+[0])
 
 	# Now drop it.
-	task.step((obs.gripper_pose).tolist()+[1])
+	obs, reward, terminate = task.step((obs.gripper_pose).tolist()+[1])
 	#######################################################################
 	# Now move back to waypoint2
-	task.step(waypoint2.tolist()+[1])
+	obs, reward, terminate = task.step(waypoint2.tolist()+[1])
 
 	# Now pick up next shape
 	shape3 = obj_pose_sensor.get_poses()["Shape3"]
 	shape3[3:] = [1,0,0,0]
-	task.step(shape3.tolist()+[1])
+	obs, reward, terminate = task.step(shape3.tolist()+[1])
 	# Now close the gripper to try picking it up (close gripper)
-	task.step((obs.gripper_pose).tolist()+[0])
+	obs, reward, terminate = task.step((obs.gripper_pose).tolist()+[0])
 
 	# Now move to waypoint 2 once again (but keep the gripper closed)
-	task.step(waypoint2.tolist()+[0])
+	obs, reward, terminate = task.step(waypoint2.tolist()+[0])
+
+	# 	print('object is picked up')
 
 	# Now move to the empty target container (waypoint 3) and then drop
 	waypoint3 = obj_pose_sensor.get_poses()["waypoint3"]
-	task.step(waypoint3.tolist()+[0])
+	obs, reward, terminate = task.step(waypoint3.tolist()+[0])
 
 	# Now drop it.
-	task.step((obs.gripper_pose).tolist()+[1])
+	obs, reward, terminate = task.step((obs.gripper_pose).tolist()+[1])
+
+	####################################################
+	##################### RESETTING#####################
+
+	### SHAPE 0
+	# First go to waypoint 2
+	waypoint2 = obj_pose_sensor.get_poses()["waypoint2"]
+	obs, reward, terminate = task.step(waypoint2.tolist()+[1])
+
+	# Go to target container with gripper open
+	waypoint3 = obj_pose_sensor.get_poses()["waypoint3"]
+	obs, reward, terminate = task.step(waypoint3.tolist()+[1])
+
+	# Now go to shape 0
+	shape0 = obj_pose_sensor.get_poses()["Shape0"]
+	shape0[3:] = [1,0,0,0]
+	obs, reward, terminate = task.step(shape0.tolist()+[1])
+	# Now close the gripper to try picking it up (close gripper)
+	obs, reward, terminate = task.step((obs.gripper_pose).tolist()+[0])
+
+	# Now move to waypoint 3 above target container with object clasped by gripper
+	waypoint3 = obj_pose_sensor.get_poses()["waypoint3"]
+	obs, reward, terminate = task.step(waypoint3.tolist()+[0])
+
+	# Go to location above the center container (waypoint 2)
+	waypoint2 = obj_pose_sensor.get_poses()["waypoint2"]
+	obs, reward, terminate = task.step(waypoint2.tolist()+[0])
+
+	# Now drop it.
+	obs, reward, terminate = task.step((obs.gripper_pose).tolist()+[1])
+
+	###############################################################
+
+	### SHAPE 1
+	# Go to target container with gripper open
+	waypoint3 = obj_pose_sensor.get_poses()["waypoint3"]
+	obs, reward, terminate = task.step(waypoint3.tolist()+[1])
+
+	# Now go to shape 0
+	shape1 = obj_pose_sensor.get_poses()["Shape1"]
+	shape1[3:] = [1,0,0,0]
+	obs, reward, terminate = task.step(shape0.tolist()+[1])
+	# Now close the gripper to try picking it up (close gripper)
+	obs, reward, terminate = task.step((obs.gripper_pose).tolist()+[0])
+
+	# Now move to waypoint 3 above target container with object clasped by gripper
+	waypoint3 = obj_pose_sensor.get_poses()["waypoint3"]
+	obs, reward, terminate = task.step(waypoint3.tolist()+[0])
+
+	# Go to location above the center container (waypoint 2)
+	waypoint2 = obj_pose_sensor.get_poses()["waypoint2"]
+	obs, reward, terminate = task.step(waypoint2.tolist()+[0])
+
+	# Now drop it.
+	obs, reward, terminate = task.step((obs.gripper_pose).tolist()+[1])
+
+	################################################################
+
+	### SHAPE 2
+	# Go to target container with gripper open
+	waypoint3 = obj_pose_sensor.get_poses()["waypoint3"]
+	obs, reward, terminate = task.step(waypoint3.tolist()+[1])
+
+	# Now go to shape 0
+	shape2 = obj_pose_sensor.get_poses()["Shape2"]
+	shape2[3:] = [1,0,0,0]
+	obs, reward, terminate = task.step(shape0.tolist()+[1])
+	# Now close the gripper to try picking it up (close gripper)
+	obs, reward, terminate = task.step((obs.gripper_pose).tolist()+[0])
+
+	# Now move to waypoint 3 above target container with object clasped by gripper
+	waypoint3 = obj_pose_sensor.get_poses()["waypoint3"]
+	obs, reward, terminate = task.step(waypoint3.tolist()+[0])
+
+	# Go to location above the center container (waypoint 2)
+	waypoint2 = obj_pose_sensor.get_poses()["waypoint2"]
+	obs, reward, terminate = task.step(waypoint2.tolist()+[0])
+
+	# Now drop it.
+	obs, reward, terminate = task.step((obs.gripper_pose).tolist()+[1])
+
 	"""
     while True:
         # Getting noisy object poses
@@ -165,7 +248,7 @@ if __name__ == "__main__":
 
         # Perform action and step simulation
         action = agent.act(obs)
-        obs, reward, terminate = task.step(action)
+        obs, reward, terminate = obs, reward, terminate = task.step(action)
         depth = obs.wrist_depth
         depth_image = DepthImage(depth, frame='world')
         cam_intr = CameraIntrinsics(fx=110.851251684, fy=110.851251684, cx=64, cy=64, frame='world', height=128, width=128)
