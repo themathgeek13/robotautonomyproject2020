@@ -2,9 +2,9 @@ import numpy as np
 import quaternion
 from itertools import product
 
-import rospy
-from sensor_msgs.msg import JointState
-from collision_boxes_publisher import CollisionBoxesPublisher
+#import rospy
+# from sensor_msgs.msg import JointState
+# from collision_boxes_publisher import CollisionBoxesPublisher
 
 
 class FrankaRobot:
@@ -79,8 +79,8 @@ class FrankaRobot:
     ])
 
     def __init__(self):
-        self._joint_state_pub = rospy.Publisher('joint_states', JointState, queue_size=10)
-        self._collision_boxes_pub = CollisionBoxesPublisher('franka_collision_boxes')
+        # self._joint_state_pub = rospy.Publisher('joint_states', JointState, queue_size=10)
+        # self._collision_boxes_pub = CollisionBoxesPublisher('franka_collision_boxes')
 
         self._collision_boxes_data = np.zeros((len(self.collision_box_shapes), 10))
         self._collision_boxes_data[:, -3:] = self.collision_box_shapes

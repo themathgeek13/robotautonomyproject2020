@@ -13,7 +13,6 @@ from rlbench.tasks import *
 
 from perception import CameraIntrinsics, DepthImage
 
-from pyrep.robots.arms import arm
 
 from rrt import RRT
 from franka_robot import FrankaRobot 
@@ -99,32 +98,53 @@ if __name__ == "__main__":
 	fr = FrankaRobot()
 	rrt = RRT(fr, None)
 
+	arm = env._scene._active_task.robot.arm
 	# Go to location above the center container (waypoint 2)
-	waypoint2 = obj_pose_sensor.get_poses()["waypoint2"]
+	curr_pos = obs.gripper_pose
 	# IK on it
-	joints_start = arm.get_configs_for_tip_pose(self,
-                                 waypoint2[0:3],
+	
+
+	w,x,y,z = curr_pos[3:]
+
+	joints_start = arm.get_configs_for_tip_pose(
+                                 curr_pos[0:3],
                                  None,
-                                 waypoint2[3:],
-                                 ignore_collisions=False,
-                                 trials=300, max_configs=60)
+                                 [x,y,z,w],
+                                 ignore_collisions=True
+                                 )
+	#print("start", joints_start)
+	# joints_start = arm.solve_ik(
+	#                                  curr_pos[0:3],
+	#                                  None,
+	#                                  curr_pos[3:],
+	#                                  )
 
 	# Try to pick up shape 0
-	shape0 = obj_pose_sensor.get_poses()["Shape0"]
+	waypoint2 = obj_pose_sensor.get_poses()["waypoint2"]
+
+	w,x,y,z = waypoint2[3:]
 	# IK on it
-	joints_target = arm.get_configs_for_tip_pose(self,
-                                 shape0[0:3],
+	joints_target = arm.get_configs_for_tip_pose(
+                                 waypoint2[0:3],
                                  None,
-                                 shape0[3:],
-                                 ignore_collisions=False,
-                                 trials=300, max_configs=60)
+                                 [x,y,z,w],
+                                 ignore_collisions=True
+                                 )
+	#print("target", joints_target)
+	# joints_target = arm.solve_ik(
+	#                                  shape0[0:3],
+	#                                  None,
+	#                                  shape0[3:],
+	#                                  )
 
-	plan = rrt.plan(joints_start, joints_target, None)
+	plan = rrt.plan(np.asarray(joints_start[0]), np.asarray(joints_target[0]), None)
 
-	for i in plan:
-		joints = plan[i % len(plan)]
-		task.step(joints.tolist()+[1])
-		i = i + 1
+	print("plan = ", plan)
+
+	for p in plan:
+		joints = p
+		task.step(p.tolist()+[1])
+		
 
 
 	"""

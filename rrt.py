@@ -43,8 +43,8 @@ class RRT:
         self._project_step_size = 0.2#1e-1
         self._constraint_th = 0.0009#1e-3
 
-        self._q_step_size = 0.14#0.01
-        self._target_p = 0.3
+        self._q_step_size = 0.14#0.14#0.01
+        self._target_p = 0.5
         self._max_n_nodes = int(1e5)
 
     def sample_valid_joints(self):
@@ -129,8 +129,8 @@ class RRT:
             if constraint != None:
                 q_new = self.project_to_constraint(q_new, constraint)
 
-            if self._is_in_collision(q_new):
-                continue 
+            # if self._is_in_collision(q_new):
+            #     continue 
 
             new_node_id = int(tree.insert_new_node(q_new, temp[0]))
 
