@@ -1,5 +1,6 @@
 from time import time
 import numpy as np
+import quaternion
 
 from kdtree import KDTree
 from franka_robot import FrankaRobot
@@ -121,6 +122,8 @@ class RRT:
             else:
                 q_sample = self.sample_valid_joints()
 
+            quat_sample = np.quaternion(*q_sample[3:]).normalized()
+            q_sample[3:] = [quat_sample.w, quat_sample.x, quat_sample.y, quat_sample.z]
             temp = tree.get_nearest_node(q_sample) 
             q_near = tree.get_point(temp[0])
             q_norm = np.linalg.norm(q_sample - q_near)
@@ -132,6 +135,8 @@ class RRT:
             # if self._is_in_collision(q_new):
             #     continue 
 
+            quat_new = np.quaternion(*q_new[3:]).normalized()
+            q_new[3:] = [quat_new.w, quat_new.x, quat_new.y, quat_new.z]
             new_node_id = int(tree.insert_new_node(q_new, temp[0]))
 
             if np.linalg.norm(q_new - q_target) < self._q_step_size:

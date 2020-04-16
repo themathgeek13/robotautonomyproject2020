@@ -84,9 +84,34 @@ def move_to_location(task, obs, desired_pose, obj_pose_sensor, tolerance=0.5, is
 		obs, reward, terminate = task.step((current_gripper_pose+delta/20).tolist()+[isopen])
 	return obs, reward, terminate
 
+#desired_ee_rp = fr.ee(fr.home_joints)[3:5]
+def ee_upright_constraint(q):
+    '''
+    TODO: Implement constraint function and its gradient. 
+    
+    This constraint should enforce the end-effector stays upright.
+    Hint: Use the roll and pitch angle in desired_ee_rp. The end-effector is upright in its home state.
+
+    Input:
+        q - a joint configuration
+
+    Output:
+        err - a non-negative scalar that is 0 when the constraint is satisfied
+        grad - a vector of length 6, where the ith element is the derivative of err w.r.t. the ith element of ee
+    '''
+    ee = fr.ee(q)
+    err, grad = None, None
+
+    grad = np.zeros(6)
+    err = (ee[3] - desired_ee_rp[0])*(ee[3] - desired_ee_rp[0]) + (ee[4] - desired_ee_rp[1])*(ee[4] - desired_ee_rp[1])
+    # error function should be convex
+    grad = [0, 0, 0, 2*(ee[3] - desired_ee_rp[0]), 2*(ee[4] - desired_ee_rp[1]), 0]
+    
+    return err, grad
+
 
 if __name__ == "__main__":
-	action_mode = ActionMode(ArmActionMode.ABS_JOINT_POSITION) # See rlbench/action_modes.py for other action modes
+	action_mode = ActionMode(ArmActionMode.ABS_EE_POSE) # See rlbench/action_modes.py for other action modes
 	env = Environment(action_mode, '', ObservationConfig(), False)
 	task = env.get_task(EmptyContainer) # available tasks: EmptyContainer, PlayJenga, PutGroceriesInCupboard, SetTheTable
 	agent = RandomAgent()
@@ -102,16 +127,16 @@ if __name__ == "__main__":
 	# Go to location above the center container (waypoint 2)
 	curr_pos = obs.gripper_pose
 	# IK on it
-	
+	constraint = None#ee_upright_constraint
 
-	w,x,y,z = curr_pos[3:]
+	#w,x,y,z = curr_pos[3:]
 
-	joints_start = arm.get_configs_for_tip_pose(
-                                 curr_pos[0:3],
-                                 None,
-                                 [x,y,z,w],
-                                 ignore_collisions=True
-                                 )
+	# joints_start = arm.get_configs_for_tip_pose(
+ #                                 curr_pos[0:3],
+ #                                 None,
+ #                                 [x,y,z,w],
+ #                                 ignore_collisions=True
+ #                                 )
 	#print("start", joints_start)
 	# joints_start = arm.solve_ik(
 	#                                  curr_pos[0:3],
@@ -120,26 +145,44 @@ if __name__ == "__main__":
 	#                                  )
 
 	# Try to pick up shape 0
+	# inter1 = curr_pos.copy()
+	# inter1[2] = inter1[2] - 0.30
+	# # w,x,y,z = inter1[3:]
+
+	# # joints_inter1 = arm.get_configs_for_tip_pose(
+ # #                                 inter1[0:3],
+ # #                                 None,
+ # #                                 [x,y,z,w],
+ # #                                 ignore_collisions=True
+ # #                                 )
+
+	# plan = rrt.plan(np.asarray(curr_pos), np.asarray(inter1), constraint)
+
+	# for p in plan:
+	# 	joints = p
+	# 	task.step(p.tolist()+[1])
+
 	waypoint2 = obj_pose_sensor.get_poses()["waypoint2"]
 
-	w,x,y,z = waypoint2[3:]
-	# IK on it
-	joints_target = arm.get_configs_for_tip_pose(
-                                 waypoint2[0:3],
-                                 None,
-                                 [x,y,z,w],
-                                 ignore_collisions=True
-                                 )
-	#print("target", joints_target)
-	# joints_target = arm.solve_ik(
-	#                                  shape0[0:3],
-	#                                  None,
-	#                                  shape0[3:],
-	#                                  )
+	# w,x,y,z = waypoint2[3:]
+	# # IK on it
+	# joints_target = arm.get_configs_for_tip_pose(
+ #                                 waypoint2[0:3],
+ #                                 None,
+ #                                 [x,y,z,w],
+ #                                 ignore_collisions=True
+ #                                 )
+	# #print("target", joints_target)
+	# # joints_target = arm.solve_ik(
+	# #                                  shape0[0:3],
+	# #                                  None,
+	# #                                  shape0[3:],
+	# #                                  )
+	
+	# desired_ee_rp = fr.ee(fr.home_joints)[3:5]
+	plan = rrt.plan(np.asarray(curr_pos), np.asarray(waypoint2), constraint)
 
-	plan = rrt.plan(np.asarray(joints_start[0]), np.asarray(joints_target[0]), None)
-
-	print("plan = ", plan)
+	#print("plan = ", plan)
 
 	for p in plan:
 		joints = p

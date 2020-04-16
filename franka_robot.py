@@ -9,8 +9,8 @@ from itertools import product
 
 class FrankaRobot:
 
-    joint_limits_low = np.array([-2.8973, -1.7628, -2.8973, -3.0718, -2.8973, -0.0175, -2.8973])
-    joint_limits_high = np.array([2.8973, 1.7628, 2.8973, -0.0698, 2.8973, 3.7525, 2.8973])
+    joint_limits_low = np.array([0, -0.855, 0, 0.146, 0.3535, -0.3535, -0.8535])
+    joint_limits_high = np.array([0.855, 0.855, 1.190, -0.146, 0.3535, -0.3535, 0.8535])
     home_joints = np.array([0, -np.pi / 4, 0, -3 * np.pi / 4, 0, np.pi / 2, np.pi / 4])
     dh_params = np.array([[0, 0.333, 0, 0],
                                 [0, 0, -np.pi/2, 0],
