@@ -84,30 +84,19 @@ def move_to_location(task, obs, desired_pose, obj_pose_sensor, tolerance=0.5, is
 		obs, reward, terminate = task.step((current_gripper_pose+delta/20).tolist()+[isopen])
 	return obs, reward, terminate
 
-#desired_ee_rp = fr.ee(fr.home_joints)[3:5]
-def ee_upright_constraint(q):
-    '''
-    TODO: Implement constraint function and its gradient. 
-    
-    This constraint should enforce the end-effector stays upright.
-    Hint: Use the roll and pitch angle in desired_ee_rp. The end-effector is upright in its home state.
+def reshape_quaternion(quat):
+	w = quat[3]
+	np.delete(quat, 3)
+	np.append(quat, w)
+	return quat
 
-    Input:
-        q - a joint configuration
+def move_rrt(task, source, dest, open=1):
+	plan = rrt.plan(np.asarray(source), np.asarray(dest), None)
+	for p in plan:
+		joints = p
+		obs, reward, terminate = task.step(p.tolist()+[open])
+	return obs, reward, terminate
 
-    Output:
-        err - a non-negative scalar that is 0 when the constraint is satisfied
-        grad - a vector of length 6, where the ith element is the derivative of err w.r.t. the ith element of ee
-    '''
-    ee = fr.ee(q)
-    err, grad = None, None
-
-    grad = np.zeros(6)
-    err = (ee[3] - desired_ee_rp[0])*(ee[3] - desired_ee_rp[0]) + (ee[4] - desired_ee_rp[1])*(ee[4] - desired_ee_rp[1])
-    # error function should be convex
-    grad = [0, 0, 0, 2*(ee[3] - desired_ee_rp[0]), 2*(ee[4] - desired_ee_rp[1]), 0]
-    
-    return err, grad
 
 
 if __name__ == "__main__":
@@ -122,74 +111,77 @@ if __name__ == "__main__":
 
 	fr = FrankaRobot()
 	rrt = RRT(fr, None)
-
-	arm = env._scene._active_task.robot.arm
-	# Go to location above the center container (waypoint 2)
-	curr_pos = obs.gripper_pose
-	# IK on it
-	constraint = None#ee_upright_constraint
-
-	#w,x,y,z = curr_pos[3:]
-
-	# joints_start = arm.get_configs_for_tip_pose(
- #                                 curr_pos[0:3],
- #                                 None,
- #                                 [x,y,z,w],
- #                                 ignore_collisions=True
- #                                 )
-	#print("start", joints_start)
-	# joints_start = arm.solve_ik(
-	#                                  curr_pos[0:3],
-	#                                  None,
-	#                                  curr_pos[3:],
-	#                                  )
-
-	# Try to pick up shape 0
-	# inter1 = curr_pos.copy()
-	# inter1[2] = inter1[2] - 0.30
-	# # w,x,y,z = inter1[3:]
-
-	# # joints_inter1 = arm.get_configs_for_tip_pose(
- # #                                 inter1[0:3],
- # #                                 None,
- # #                                 [x,y,z,w],
- # #                                 ignore_collisions=True
- # #                                 )
-
-	# plan = rrt.plan(np.asarray(curr_pos), np.asarray(inter1), constraint)
-
-	# for p in plan:
-	# 	joints = p
-	# 	task.step(p.tolist()+[1])
-
-	waypoint2 = obj_pose_sensor.get_poses()["waypoint2"]
-
-	# w,x,y,z = waypoint2[3:]
-	# # IK on it
-	# joints_target = arm.get_configs_for_tip_pose(
- #                                 waypoint2[0:3],
- #                                 None,
- #                                 [x,y,z,w],
- #                                 ignore_collisions=True
- #                                 )
-	# #print("target", joints_target)
-	# # joints_target = arm.solve_ik(
-	# #                                  shape0[0:3],
-	# #                                  None,
-	# #                                  shape0[3:],
-	# #                                  )
 	
-	# desired_ee_rp = fr.ee(fr.home_joints)[3:5]
-	plan = rrt.plan(np.asarray(curr_pos), np.asarray(waypoint2), constraint)
+	arm = env._scene._active_task.robot.arm
 
-	#print("plan = ", plan)
+	objPoses = obj_pose_sensor.get_poses()
 
-	for p in plan:
-		joints = p
-		task.step(p.tolist()+[1])
-		
+	# First move the robot from initial pose to waypoint 2
+	curr_pos = obs.gripper_pose
+	
+	waypoint2 = objPoses["waypoint2"]
 
+	upright_w2 = waypoint2
+	upright_w2[3:] = obs.gripper_pose[3:] 
 
+	obs, reward, terminate = move_rrt(task, curr_pos, waypoint2)
+
+	waypoint3 = objPoses["waypoint3"]
+	
+	# Now go and pick up shapes, one at a time, from large container and drop it in the small one
+	shapes = [objPoses["Shape0"], objPoses["Shape1"], objPoses["Shape3"]]
+
+	reshape_q = False
+
+	if reshape_q:
+		for i in shapes:
+			shapes[i] = reshape_quaternion(shapes[i])
+
+	upright_s0 = shapes[0]
+	upright_s0[3:] = obs.gripper_pose[3:]
+
+	upright_s1 = shapes[1]
+	upright_s1[3:] = obs.gripper_pose[3:]
+
+	upright_s2 = shapes[2]
+	upright_s2[3:] = obs.gripper_pose[3:]
+
+	#obs, reward, terminate  = move_rrt(task, task, waypoint2, upright_s0)
+	#obs, reward, terminate = task.step((obs.gripper_pose).tolist()+[0])
+
+	#obs,reward, terminate = move_rrt(task, task, upright_s0, waypoint2, 0)
+	print("Forward Pass begins:")
+	
+	for i in range(3):
+		obs, reward, terminate = move_rrt(task, waypoint2, shapes[i])
+		obs, reward, terminate = task.step((obs.gripper_pose).tolist()+[0])
+		obs, reward, terminate = move_rrt(task, shapes[i], waypoint2, 0)
+		obs, reward, terminate = move_rrt(task, waypoint2, waypoint3, 0)
+		obs, reward, terminate = task.step((obs.gripper_pose).tolist()+[1])
+		obs, reward, terminate = move_rrt(task, waypoint3, waypoint2)
+
+	objPoses = obj_pose_sensor.get_poses()
+	shapes = [objPoses["Shape0"], objPoses["Shape1"], objPoses["Shape3"]]
+
+	upright_s0 = shapes[0]
+	upright_s0[3:] = obs.gripper_pose[3:]
+
+	upright_s1 = shapes[1]
+	upright_s1[3:] = obs.gripper_pose[3:]
+
+	upright_s2 = shapes[2]
+	upright_s2[3:] = obs.gripper_pose[3:]
+	print("Resetting begins:")
+
+	for i in range(3):
+		obs, reward, terminate = move_rrt(task, waypoint2, waypoint3)
+		obs, reward, terminate = move_rrt(task, waypoint3, shapes[i])
+		obs, reward, terminate = task.step((obs.gripper_pose).tolist()+[0])
+		obs, reward, terminate = move_rrt(task, shapes[i], waypoint3, 0)
+		obs, reward, terminate = move_rrt(task, waypoint3, waypoint2, 0)
+		obs, reward, terminate = task.step((obs.gripper_pose).tolist()+[1])
+
+	
 	"""
     while True:
         # Getting noisy object poses
