@@ -4,7 +4,7 @@ from quaternion import from_rotation_matrix, quaternion
 
 import sys
 import os
-#sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
+sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
 
 from rlbench.environment import Environment
 from rlbench.action_modes import ArmActionMode, ActionMode
@@ -12,6 +12,7 @@ from rlbench.observation_config import ObservationConfig
 from rlbench.tasks import *
 
 from perception import CameraIntrinsics, DepthImage
+from scipy.spatial.transform import Rotation as R
 
 
 from rrt import RRT
@@ -129,6 +130,14 @@ if __name__ == "__main__":
 	waypoint3 = objPoses["waypoint3"]
 	upright_w3 = waypoint3
 	upright_w3[3:] = obs.gripper_pose[3:] 
+
+	# r = R.from_quat([0, 0, np.sin(np.pi/4), np.cos(np.pi/4)])
+	# r2 = R.from_quat(obs.gripper_pose[3:])
+	# rot_gripper_pose = (r*r2).as_quat()
+	# finalpose = obs.gripper_pose
+	# finalpose[3:] = rot_gripper_pose
+
+	# obs, reward, terminate = move_rrt(task, obs.gripper_pose, finalpose)
 	
 	# Now go and pick up shapes, one at a time, from large container and drop it in the small one
 	shapes = [objPoses["Shape0"], objPoses["Shape1"], objPoses["Shape3"]]
@@ -159,8 +168,23 @@ if __name__ == "__main__":
 		obs, reward, terminate = task.step((obs.gripper_pose).tolist()+[0])
 		obs, reward, terminate = move_rrt(task, shapes[i], waypoint2, 0)
 		obs, reward, terminate = move_rrt(task, waypoint2, waypoint3, 0)
+		droploc = waypoint3.copy()
+		droploc[2]-=0.1
+		obs, reward, terminate = move_rrt(task, waypoint3, droploc, 0)
 		obs, reward, terminate = task.step((obs.gripper_pose).tolist()+[1])
+		obs, reward, terminate = move_rrt(task, droploc, waypoint3)
 		obs, reward, terminate = move_rrt(task, waypoint3, waypoint2)
+
+	
+	print("Resetting begins:")
+
+	r = R.from_quat([0, 0, np.sin(np.pi/4), np.cos(np.pi/4)])
+	r2 = R.from_quat(obs.gripper_pose[3:])
+	rot_gripper_pose = (r*r2).as_quat()
+	finalpose = obs.gripper_pose
+	finalpose[3:] = rot_gripper_pose
+
+	obs, reward, terminate = move_rrt(task, obs.gripper_pose, finalpose)
 
 	objPoses = obj_pose_sensor.get_poses()
 	shapes = [objPoses["Shape0"], objPoses["Shape1"], objPoses["Shape3"]]
@@ -173,7 +197,14 @@ if __name__ == "__main__":
 
 	upright_s2 = shapes[2]
 	upright_s2[3:] = obs.gripper_pose[3:]
-	print("Resetting begins:")
+
+	upright_w2 = waypoint2
+	upright_w2[3:] = obs.gripper_pose[3:]
+
+	waypoint3 = objPoses["waypoint3"]
+	upright_w3 = waypoint3
+	upright_w3[3:] = obs.gripper_pose[3:]
+
 
 	for i in range(3):
 		obs, reward, terminate = move_rrt(task, waypoint2, waypoint3)
