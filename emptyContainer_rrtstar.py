@@ -85,11 +85,6 @@ def move_to_location(task, obs, desired_pose, obj_pose_sensor, tolerance=0.5, is
 		obs, reward, terminate = task.step((current_gripper_pose+delta/20).tolist()+[isopen])
 	return obs, reward, terminate
 
-def reshape_quaternion(quat):
-	w = quat[3]
-	np.delete(quat, 3)
-	np.append(quat, w)
-	return quat
 
 def move_rrt(task, source, dest, open=1):
 	plan = rrt.plan(np.asarray(source), np.asarray(dest), None)
@@ -97,6 +92,25 @@ def move_rrt(task, source, dest, open=1):
 		joints = p
 		obs, reward, terminate = task.step(p.tolist()+[open])
 	return obs, reward, terminate
+
+def check_shape_loc(obs, shape_ind):
+	objPoses = obj_pose_sensor.get_poses()
+	
+	if shape_ind == 0:
+		upright_s0 = objPoses["Shape0"]
+		upright_s0[3:] = obs.gripper_pose[3:]
+		return upright_s0
+
+	if shape_ind == 1:
+		upright_s1 = objPoses["Shape1"]
+		upright_s1[3:] = obs.gripper_pose[3:]
+		return upright_s1
+	
+	if shape_ind == 3:
+		upright_s3 = objPoses["Shape3"]
+		upright_s3[3:] = obs.gripper_pose[3:]
+		return upright_s3
+
 
 
 
@@ -131,42 +145,13 @@ if __name__ == "__main__":
 	upright_w3 = waypoint3
 	upright_w3[3:] = obs.gripper_pose[3:] 
 
-	# r = R.from_quat([0, 0, np.sin(np.pi/4), np.cos(np.pi/4)])
-	# r2 = R.from_quat(obs.gripper_pose[3:])
-	# rot_gripper_pose = (r*r2).as_quat()
-	# finalpose = obs.gripper_pose
-	# finalpose[3:] = rot_gripper_pose
-
-	# obs, reward, terminate = move_rrt(task, obs.gripper_pose, finalpose)
-	
-	# Now go and pick up shapes, one at a time, from large container and drop it in the small one
-	shapes = [objPoses["Shape0"], objPoses["Shape1"], objPoses["Shape3"]]
-
-	reshape_q = False
-
-	if reshape_q:
-		for i in shapes:
-			shapes[i] = reshape_quaternion(shapes[i])
-
-	upright_s0 = shapes[0]
-	upright_s0[3:] = obs.gripper_pose[3:]
-
-	upright_s1 = shapes[1]
-	upright_s1[3:] = obs.gripper_pose[3:]
-
-	upright_s2 = shapes[2]
-	upright_s2[3:] = obs.gripper_pose[3:]
-
-	#obs, reward, terminate  = move_rrt(task, task, waypoint2, upright_s0)
-	#obs, reward, terminate = task.step((obs.gripper_pose).tolist()+[0])
-
-	#obs,reward, terminate = move_rrt(task, task, upright_s0, waypoint2, 0)
-	print("Forward Pass begins:")
-	
-	for i in range(3):
-		obs, reward, terminate = move_rrt(task, waypoint2, shapes[i])
+		
+	print("Forward pass begins:")
+	for i in [0, 1, 3]:
+		shape_loc = check_shape_loc(obs, i)
+		obs, reward, terminate = move_rrt(task, waypoint2, shape_loc)
 		obs, reward, terminate = task.step((obs.gripper_pose).tolist()+[0])
-		obs, reward, terminate = move_rrt(task, shapes[i], waypoint2, 0)
+		obs, reward, terminate = move_rrt(task, shape_loc, waypoint2, 0)
 		obs, reward, terminate = move_rrt(task, waypoint2, waypoint3, 0)
 		droploc = waypoint3.copy()
 		droploc[2]-=0.1
@@ -184,33 +169,25 @@ if __name__ == "__main__":
 	finalpose = obs.gripper_pose
 	finalpose[3:] = rot_gripper_pose
 
+	# Rotate gripper by 90 degrees
 	obs, reward, terminate = move_rrt(task, obs.gripper_pose, finalpose)
 
-	objPoses = obj_pose_sensor.get_poses()
-	shapes = [objPoses["Shape0"], objPoses["Shape1"], objPoses["Shape3"]]
-
-	upright_s0 = shapes[0]
-	upright_s0[3:] = obs.gripper_pose[3:]
-
-	upright_s1 = shapes[1]
-	upright_s1[3:] = obs.gripper_pose[3:]
-
-	upright_s2 = shapes[2]
-	upright_s2[3:] = obs.gripper_pose[3:]
-
+	# Get updated positions of waypoints (gripper rotated)
+	waypoint2 = obj_pose_sensor.get_poses()["waypoint2"]
 	upright_w2 = waypoint2
 	upright_w2[3:] = obs.gripper_pose[3:]
 
-	waypoint3 = objPoses["waypoint3"]
+	waypoint3 = obj_pose_sensor.get_poses()["waypoint3"]
 	upright_w3 = waypoint3
 	upright_w3[3:] = obs.gripper_pose[3:]
 
 
-	for i in range(3):
+	for i in [0, 1, 3]:
+		shape_loc = check_shape_loc(obs, i)
 		obs, reward, terminate = move_rrt(task, waypoint2, waypoint3)
-		obs, reward, terminate = move_rrt(task, waypoint3, shapes[i])
+		obs, reward, terminate = move_rrt(task, waypoint3, shape_loc)
 		obs, reward, terminate = task.step((obs.gripper_pose).tolist()+[0])
-		obs, reward, terminate = move_rrt(task, shapes[i], waypoint3, 0)
+		obs, reward, terminate = move_rrt(task, shape_loc, waypoint3, 0)
 		obs, reward, terminate = move_rrt(task, waypoint3, waypoint2, 0)
 		obs, reward, terminate = task.step((obs.gripper_pose).tolist()+[1])
 
