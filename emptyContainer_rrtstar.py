@@ -4,7 +4,7 @@ from quaternion import from_rotation_matrix, quaternion
 
 import sys
 import os
-sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
+#sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
 
 from rlbench.environment import Environment
 from rlbench.action_modes import ArmActionMode, ActionMode
@@ -17,6 +17,8 @@ from scipy.spatial.transform import Rotation as R
 
 from rrt import RRT
 from franka_robot import FrankaRobot 
+
+import stopit
 
 def skew(x):
     return np.array([[0, -x[2], x[1]],
@@ -115,9 +117,16 @@ def move_to_location(task, obs, desired_pose, obj_pose_sensor, tolerance=0.5, is
 
 def move_rrt(task, source, dest, open=1):
 	plan = rrt.plan(np.asarray(source), np.asarray(dest), None)
+
+	#assert to_ctx_mgr == to_ctx_mgr.EXECUTING
 	for p in plan:
 		joints = p
-		obs, reward, terminate = task.step(p.tolist()+[open])
+		with stopit.ThreadingTimeout(0.5) as to_ctx_mgr:
+			obs, reward, terminate = task.step(p.tolist()+[open])
+		if to_ctx_mgr.state == to_ctx_mgr.EXECUTED:
+			print("completed planning")
+		elif to_ctx_mgr.state == to_ctx_mgr.TIMED_OUT:
+			print("replan that path")
 	return obs, reward, terminate
 
 def check_shape_loc(graspable_pose_sensor, obs, shape_ind):
@@ -148,7 +157,7 @@ def test_if_grasped(obs, objs, objname):
 		if(name==objname):
 			err = np.linalg.norm(obs.gripper_pose[0:3]-pose[0:3])
 			print('Err = ', err)
-			if err > 0.01:
+			if err > 0.1:
 				print('Shape not picked up')
 				return False
 	return True
@@ -196,6 +205,7 @@ if __name__ == "__main__":
 		objs = env._scene._active_task.get_graspable_objects()
 
 		while not test_if_grasped(obs, objs, objname):
+			shape_loc = check_shape_loc(graspable_pose_sensor, obs, i)
 			obs, reward, terminate = move_rrt(task, waypoint2, shape_loc)
 			obs, reward, terminate = task.step((obs.gripper_pose).tolist()+[0])
 			obs, reward, terminate = move_rrt(task, shape_loc, waypoint2, 0)
@@ -231,11 +241,17 @@ if __name__ == "__main__":
 
 
 	for i in [0, 1, 3]:
-		shape_loc = check_shape_loc(graspable_pose_sensor, obs, i)
+		objname = "Shape"+str(i)
+		if i==0:
+			objname = "Shape"
+
+		objs = env._scene._active_task.get_graspable_objects()
 		obs, reward, terminate = move_rrt(task, waypoint2, waypoint3)
-		obs, reward, terminate = move_rrt(task, waypoint3, shape_loc)
-		obs, reward, terminate = task.step((obs.gripper_pose).tolist()+[0])
-		obs, reward, terminate = move_rrt(task, shape_loc, waypoint3, 0)
+		while not test_if_grasped(obs, objs, objname):
+			shape_loc = check_shape_loc(graspable_pose_sensor, obs, i)
+			obs, reward, terminate = move_rrt(task, waypoint3, shape_loc)
+			obs, reward, terminate = task.step((obs.gripper_pose).tolist()+[0])
+			obs, reward, terminate = move_rrt(task, shape_loc, waypoint3, 0)
 		obs, reward, terminate = move_rrt(task, waypoint3, waypoint2, 0)
 		obs, reward, terminate = task.step((obs.gripper_pose).tolist()+[1])
 
