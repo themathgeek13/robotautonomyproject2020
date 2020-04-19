@@ -151,6 +151,7 @@ if __name__ == "__main__":
 
 	# Now drop it.
 	task.step((obs.gripper_pose).tolist()+[1])
+
 	"""
     while True:
         # Getting noisy object poses
