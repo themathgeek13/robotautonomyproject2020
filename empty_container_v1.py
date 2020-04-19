@@ -141,10 +141,14 @@ if __name__ == "__main__":
 	waypoint3 = objPoses["waypoint3"]
 	upright_w3 = waypoint3
 	upright_w3[3:] = obs.gripper_pose[3:] 
-
+	qf = []
+	qf.append(0)
+	qf.append(1)
+	qf.append(3)
 		
 	print("Forward pass begins:")
-	for i in [0, 1, 3]:
+	while not qf.empty():
+		i = qf.pop(0)
 		shape_loc = check_shape_loc(obs, i)
 		obs, reward, terminate = move_rrt(task, waypoint2, shape_loc)
 		obs, reward, terminate = task.step((obs.gripper_pose).tolist()+[0])
@@ -156,6 +160,9 @@ if __name__ == "__main__":
 		obs, reward, terminate = task.step((obs.gripper_pose).tolist()+[1])
 		obs, reward, terminate = move_rrt(task, droploc, waypoint3)
 		obs, reward, terminate = move_rrt(task, waypoint3, waypoint2)
+		shape_loc_ = check_shape_loc(obs, i)
+		if np.linalg.norm(shape_loc - shape_loc_) < 0.1:
+			qf.append(i)
 
 	
 	print("Resetting begins:")
@@ -193,7 +200,7 @@ if __name__ == "__main__":
 		obs, reward, terminate = move_rrt(task, waypoint3, waypoint2, 0)
 		obs, reward, terminate = task.step((obs.gripper_pose).tolist()+[1])
 		shape_loc_ = check_shape_loc(obs, i)
-		if shape_loc_ == shape_loc:
+		if np.linalg.norm(shape_loc - shape_loc_) < 0.1:
 			q.append(i)
 
 	
