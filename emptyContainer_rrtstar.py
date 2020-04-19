@@ -4,7 +4,7 @@ from quaternion import from_rotation_matrix, quaternion
 
 import sys
 import os
-sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
+#sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
 
 from rlbench.environment import Environment
 from rlbench.action_modes import ArmActionMode, ActionMode
@@ -101,7 +101,7 @@ def move_rrt(task, source, dest, open=1):
 
 if __name__ == "__main__":
 	action_mode = ActionMode(ArmActionMode.ABS_EE_POSE) # See rlbench/action_modes.py for other action modes
-	env = Environment(action_mode, '', ObservationConfig(), False)
+	env = Environment(action_mode, '', ObservationConfig(), False, static_positions=True)
 	task = env.get_task(EmptyContainer) # available tasks: EmptyContainer, PlayJenga, PutGroceriesInCupboard, SetTheTable
 	agent = RandomAgent()
 	obj_pose_sensor = NoisyObjectPoseSensor(env)
@@ -127,6 +127,8 @@ if __name__ == "__main__":
 	obs, reward, terminate = move_rrt(task, curr_pos, waypoint2)
 
 	waypoint3 = objPoses["waypoint3"]
+	upright_w3 = waypoint3
+	upright_w3[3:] = obs.gripper_pose[3:] 
 	
 	# Now go and pick up shapes, one at a time, from large container and drop it in the small one
 	shapes = [objPoses["Shape0"], objPoses["Shape1"], objPoses["Shape3"]]
