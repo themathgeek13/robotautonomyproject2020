@@ -116,6 +116,7 @@ def move_to_location(task, obs, desired_pose, obj_pose_sensor, tolerance=0.5, is
 
 
 def move_rrt(task, source, dest, open=1):
+	global rrt
 	plan = rrt.plan(np.asarray(source), np.asarray(dest), None)
 
 	#assert to_ctx_mgr == to_ctx_mgr.EXECUTING
@@ -240,7 +241,7 @@ if __name__ == "__main__":
 	upright_w3[3:] = obs.gripper_pose[3:]
 
 
-	for i in [0, 1, 3]:
+	for i in [3,1,0]:
 		objname = "Shape"+str(i)
 		if i==0:
 			objname = "Shape"
