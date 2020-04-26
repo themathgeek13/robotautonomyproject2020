@@ -59,11 +59,11 @@ task = env.get_task(EmptyContainer)
 
 il = ImitationLearning()
 
-for i in range(10):
-    print("Demo set: ", i)
-    demos = task.get_demos(10, live_demos=live_demos)  # -> List[List[Observation]]
-    demos = np.array(demos).flatten()
-    np.savez("demo"+str(i)+".npy", demos)
+#for i in range(10):
+    #print("Demo set: ", i)
+demos = task.get_demos(2, live_demos=live_demos)  # -> List[List[Observation]]
+demos = np.array(demos).flatten()
+np.savez("demo"+str(i)+".npy", demos)
 print('Done')
 env.shutdown()
 
